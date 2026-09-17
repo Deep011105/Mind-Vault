@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-paper dark:bg-night text-ink dark:text-mist font-body transition-colors duration-200;
+  }
+  ::selection {
+    @apply bg-moss-400/30;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-moss-500 ring-offset-2 ring-offset-paper dark:ring-offset-night;
+  }
+  * {
+    @apply border-ink/10 dark:border-mist/10;
+  }
+}
+
+@layer components {
+  .ruled-line {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      rgba(28, 35, 33, 0.06) 27px,
+      rgba(28, 35, 33, 0.06) 28px
+    );
+  }
+  .dark .ruled-line {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      rgba(232, 230, 225, 0.06) 27px,
+      rgba(232, 230, 225, 0.06) 28px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

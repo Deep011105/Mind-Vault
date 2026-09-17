@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: MindVault
+
+  jackson:
+    use-jackson2-defaults: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/demo
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  ai:
+    ollama:
+      base-url: http://127.0.0.1:11434
+      chat:
+        # NOTE: left exactly as previously configured on purpose (hardware constraint).
+        # If your existing setup already points at a different local model/tag, keep that value.
+        options:
+          model: llama3.2:3b
+          temperature: 0.6
+      embedding:
+        options:
+          # A lightweight embedding model is fine here even though the chat model stays small —
+          # embeddings are cheap and only run once per journal entry, not per chat turn.
+          model: nomic-embed-text
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 768
+
+# ---- App-specific configuration ----
+app:
+  rag:
+    top-k: 5
+    similarity-threshold: 0.65
+    recency-buffer-size: 4
+  chat:
+    history-turns-in-context: 6
+  crisis:
+    # IMPORTANT: verify and localize before shipping this to real users.
+    # These are placeholders — do not rely on them being current/correct for your region.
+    helpline-text: >
+      If you are in immediate danger, please contact your local emergency number.
+      You may also reach a crisis line such as 988 (US), Samaritans 116 123 (UK),
+      or search "[your country] suicide helpline" for a local number.
+  pin:
+    # HS256 requires at least 32 characters. Change this before first use.
+    jwt-secret: "mindvault-local-pin-secret-key-32c"
+    # Token stays valid for 24 hours; re-enter PIN after expiry.
+    token-validity-hours: 24
