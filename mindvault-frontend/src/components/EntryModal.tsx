@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { JournalEntry, Mood } from '../types';
 import { ALL_MOODS } from '../types';
 import { moodMeta } from '../utils/mood';
+import MicButton from './MicButton';
 
 interface EntryModalProps {
   open: boolean;
@@ -77,11 +78,10 @@ export default function EntryModal({ open, mode, initialEntry, saving, onClose, 
                     key={m}
                     type="button"
                     onClick={() => setMood(m)}
-                    className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
-                      selected
+                    className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${selected
                         ? 'border-moss-500 bg-moss-600 text-white'
                         : `border-ink/10 dark:border-mist/15 ${meta.textClass} hover:border-moss-400/50`
-                    }`}
+                      }`}
                   >
                     <span>{meta.emoji}</span>
                     {meta.label}
@@ -122,14 +122,17 @@ export default function EntryModal({ open, mode, initialEntry, saving, onClose, 
 
           <div className="mt-1 h-px w-full bg-ink/10 dark:bg-mist/10" />
 
-          <textarea
-            autoFocus
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What happened today? What's on your mind?"
-            rows={10}
-            className="ruled-line w-full resize-none bg-transparent leading-[28px] text-ink dark:text-mist placeholder:text-ink-faint/50 dark:placeholder:text-mist-soft/40 focus:outline-none"
-          />
+          <div className="flex items-start gap-2">
+            <textarea
+              autoFocus
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="What happened today? What's on your mind?"
+              rows={10}
+              className="ruled-line w-full resize-none bg-transparent leading-[28px] text-ink dark:text-mist placeholder:text-ink-faint/50 dark:placeholder:text-mist-soft/40 focus:outline-none"
+            />
+            <MicButton value={content} onChange={setContent} className="mt-1" />
+          </div>
           {error && <p className="text-sm text-rust-500">{error}</p>}
         </div>
 
