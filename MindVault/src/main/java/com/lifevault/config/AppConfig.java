@@ -3,6 +3,8 @@ package com.lifevault.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,5 +38,17 @@ public class AppConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    /**
+     * Used for short, explicit transaction boundaries around DB-only work (e.g. in
+     * DailyPlanService) so a blocking external call — like a local LLM request via
+     * Ollama — never happens while a DB transaction/connection is held open.
+     * Programmatic (TransactionTemplate) rather than @Transactional so it still
+     * works correctly on self-invocation within the same class.
+     */
+    @Bean
+    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+        return new TransactionTemplate(transactionManager);
     }
 }

@@ -14,8 +14,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -88,12 +90,22 @@ public class JournalEmbeddingListener {
             } else {
                 Document full = Document.builder().text(content).metadata(baseMetadata).build();
                 List<Document> chunks = splitter.apply(List.of(full));
-                toIndex = chunks.stream().map(chunk -> Document.builder()
-                                .id(journalId + "::" + chunk.getId())
-                                .text(chunk.getText())
-                                .metadata(baseMetadata)
-                                .build())
-                        .toList();
+                toIndex = new ArrayList<>();
+                for (int i = 0; i < chunks.size(); i++) {
+                    Document chunk = chunks.get(i);
+                    // PgVectorStore requires the document id to be a valid UUID
+                    // (it does UUID.fromString() on it internally) — "journalId::chunkId"
+                    // is not one, and broke embedding for every entry long enough to be
+                    // chunked. Deterministically derive a real UUID per chunk instead, so
+                    // re-embedding the same entry (onUpdated) produces the same chunk ids.
+                    UUID chunkId = UUID.nameUUIDFromBytes(
+                            (journalId + "-chunk-" + i).getBytes(StandardCharsets.UTF_8));
+                    toIndex.add(Document.builder()
+                            .id(chunkId.toString())
+                            .text(chunk.getText())
+                            .metadata(baseMetadata)
+                            .build());
+                }
             }
             vectorStore.add(toIndex);
             log.info("Indexed {} vector chunk(s) for journal {}", toIndex.size(), journalId);

@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 /**
  * Maintains ONE running summary document instead of re-compressing the entire
  * journal history on every request. Updating it is a cheap "merge new info in"
@@ -23,7 +21,7 @@ public class ProfileSummaryService {
 
     private static final String DEFAULT_SUMMARY =
             "No profile built yet — this user hasn't written enough journal entries " +
-            "for any recurring patterns to be identified.";
+                    "for any recurring patterns to be identified.";
 
     // Skip the LLM call for very short/low-signal entries — not worth the cost
     // or the risk of the model inventing a "pattern" from one sentence.
@@ -38,14 +36,30 @@ public class ProfileSummaryService {
                 .orElse(DEFAULT_SUMMARY);
     }
 
-    public void incorporateNewEntry(String newEntryContent, Mood mood) {
+    /**
+     * synchronized: this touches the one singleton profile-summary row, and the
+     * method body spans a slow LLM call between the read and the write. Without
+     * this, two journal entries created close together can both read the same
+     * "current" row, and whichever saves second loses its update (and used to
+     * just get silently swallowed by the catch block below). Since this is a
+     * single-instance local app, a JVM-level lock is enough — no need for
+     * pessimistic DB locking or optimistic-lock retry logic.
+     */
+    public synchronized void incorporateNewEntry(String newEntryContent, Mood mood) {
         if (newEntryContent == null || countWords(newEntryContent) < MIN_WORDS_TO_UPDATE_PROFILE) {
             return;
         }
 
         UserProfileSummary current = repository.findFirstByOrderByUpdatedAtDesc()
                 .orElseGet(() -> UserProfileSummary.builder()
-                        .id(UUID.randomUUID())
+                        // Don't set .id() here — the field is @GeneratedValue.
+                        // Manually assigning a non-null id on a transient entity makes
+                        // Spring Data's save() call merge() instead of persist(), and
+                        // Hibernate 6.6+ correctly rejects that as "detached entity, no
+                        // matching row" (HHH "Merge versioned entity when row is
+                        // deleted" change) — it was throwing on every single call here,
+                        // not just concurrent ones, since the row could never actually
+                        // get created in the first place.
                         .summaryText(DEFAULT_SUMMARY)
                         .entriesIncorporated(0)
                         .build());
